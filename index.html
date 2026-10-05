@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Online Examination System</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; font-family: "Segoe UI", Arial, sans-serif; color: #1f2347;
+           background: linear-gradient(135deg, #e0e7ff, #f3e8ff); padding: 30px 15px; }
+    .box { max-width: 620px; margin: auto; background: #fff; padding: 30px; border-radius: 18px;
+           box-shadow: 0 12px 35px rgba(79, 70, 229, .2); }
+    h1 { text-align: center; color: #4f46e5; margin: 0 0 20px; }
+    h2 { margin: 0 0 8px; }
+    .hidden { display: none; }
+    .error { color: #e5484d; font-weight: 600; }
+
+    /* inputs and buttons */
+    input[type=text], input[type=email], input[type=password] {
+      width: 100%; padding: 11px 12px; margin: 4px 0 14px; border: 1.5px solid #dfe3f5;
+      border-radius: 10px; font-size: 15px; background: #f9faff; }
+    input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, .2); }
+    button { padding: 11px 22px; margin-top: 6px; background: linear-gradient(135deg, #4f46e5, #7c3aed);
+             color: #fff; border: 0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    button:hover { opacity: .9; }
+    button.light { background: #fff; color: #4f46e5; border: 1.5px solid #4f46e5; }
+
+    /* banner and info boxes */
+    .banner { background: linear-gradient(135deg, #4f46e5, #a855f7); color: #fff; padding: 24px;
+              border-radius: 14px; margin-bottom: 16px; }
+    .banner p { margin: 0; opacity: .9; }
+    .info { display: flex; gap: 12px; margin-bottom: 16px; }
+    .info div { flex: 1; background: #f1f2ff; padding: 14px; border-radius: 12px; text-align: center; color: #666; }
+    .info b { display: block; font-size: 28px; color: #4f46e5; }
+
+    /* table */
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #eef0ff; color: #4f46e5; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e8ebf8; }
+
+    /* exam */
+    .q { background: #f7f8fd; padding: 14px; border-radius: 12px; margin-bottom: 14px; }
+    .q p { font-weight: 600; margin: 0 0 10px; }
+    .q label { display: block; padding: 9px 12px; margin-bottom: 6px; background: #fff;
+               border: 1.5px solid #dfe3f5; border-radius: 10px; cursor: pointer; }
+    .q label:hover { border-color: #4f46e5; background: #f1f2ff; }
+    .q input { accent-color: #4f46e5; }
+
+    /* result */
+    .result { text-align: center; }
+    #res_status { font-size: 24px; font-weight: 700; color: #4f46e5; }
+  </style>
+</head>
+<body>
+<div class="box">
+
+  <h1>Online Examination System</h1>
+
+  <!-- Home -->
+  <div id="home" class="page">
+    <div class="banner">
+      <h2>Welcome</h2>
+      <p>Register, take the exam and see your result.</p>
+    </div>
+    <button onclick="show('register')">Register</button>
+    <button class="light" onclick="show('login')">Login</button>
+  </div>
+
+  <!-- Module 1: Registration -->
+  <div id="register" class="page hidden">
+    <h2>Student Registration</h2>
+    <form id="registerForm">
+      Full name:
+      <input type="text" id="r_name" required>
+      Email:
+      <input type="email" id="r_email" required>
+      Username:
+      <input type="text" id="r_user" required>
+      Password:
+      <input type="password" id="r_pass" required>
+      <button type="submit">Register</button>
+      <button type="button" class="light" onclick="show('home')">Back</button>
+      <p class="error" id="r_msg"></p>
+    </form>
+  </div>
+
+  <!-- Module 2: Login -->
+  <div id="login" class="page hidden">
+    <h2>Student Login</h2>
+    <form id="loginForm">
+      Username:
+      <input type="text" id="l_user" required>
+      Password:
+      <input type="password" id="l_pass" required>
+      <button type="submit">Login</button>
+      <button type="button" class="light" onclick="show('home')">Back</button>
+      <p class="error" id="l_msg"></p>
+    </form>
+  </div>
+
+  <!-- Module 5: Main Menu -->
+  <div id="menu" class="page hidden">
+    <div class="banner">
+      <h2>Welcome, <span id="m_name"></span></h2>
+      <p>Ready for your next attempt? Good luck!</p>
+    </div>
+    <div class="info">
+      <div><b>{{ questions|length }}</b>Questions</div>
+      <div><b>{{ pass_mark }}</b>Pass mark</div>
+    </div>
+    <button onclick="startExam()">Start Exam</button>
+    <button class="light" onclick="logout()">Logout</button>
+    <h3>My past results</h3>
+    <table>
+      <thead><tr><th>Date</th><th>Score</th><th>Percentage</th><th>Status</th></tr></thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Module 3: Exam -->
+  <div id="exam" class="page hidden">
+    <h2>Online Examination</h2>
+    <p>Answer all {{ questions|length }} questions. Pass mark is {{ pass_mark }}.</p>
+    <form id="examForm">
+      <div id="questionBox"></div>
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+
+  <!-- Module 4: Result -->
+  <div id="result" class="page hidden result">
+    <h2>Your Result</h2>
+    <p id="res_score"></p>
+    <p id="res_percent"></p>
+    <p id="res_status"></p>
+    <button onclick="startExam()">Try Again</button>
+    <button class="light" onclick="goMenu()">Main Menu</button>
+  </div>
+
+</div>
+
+  <script>
+    // Data sent by app.py (questions come without the correct answers)
+    var QUESTIONS = {{ questions|tojson }};
+    var currentName = "";
+
+    // Show one page and hide the others
+    function show(id) {
+      var pages = document.querySelectorAll(".page");
+      for (var i = 0; i < pages.length; i++) {
+        pages[i].classList.add("hidden");
+      }
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    // Send data to Flask and get the reply
+    function send(url, data, done) {
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+        .then(function (r) { return r.json(); })
+        .then(done);
+    }
+
+    // Module 1: Registration
+    document.getElementById("registerForm").onsubmit = function (e) {
+      e.preventDefault();
+      var form = this;
+      var data = {
+        name: document.getElementById("r_name").value,
+        email: document.getElementById("r_email").value,
+        username: document.getElementById("r_user").value,
+        password: document.getElementById("r_pass").value
+      };
+      send("/register", data, function (res) {
+        if (res.ok) {
+          document.getElementById("r_msg").textContent = "";
+          form.reset();
+          alert("Registration successful. Please login.");
+          show("login");
+        } else {
+          document.getElementById("r_msg").textContent = res.error;
+        }
+      });
+    };
+
+    // Module 2: Login
+    document.getElementById("loginForm").onsubmit = function (e) {
+      e.preventDefault();
+      var form = this;
+      var data = {
+        username: document.getElementById("l_user").value,
+        password: document.getElementById("l_pass").value
+      };
+      send("/login", data, function (res) {
+        if (res.ok) {
+          currentName = res.name;
+          document.getElementById("l_msg").textContent = "";
+          form.reset();
+          goMenu();
+        } else {
+          document.getElementById("l_msg").textContent = res.error;
+        }
+      });
+    };
+
+    function logout() {
+      send("/logout", {}, function () {
+        show("home");
+      });
+    }
+
+    // Module 5: Main menu (past results come from the database)
+    function goMenu() {
+      document.getElementById("m_name").textContent = currentName;
+      fetch("/history")
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          var body = document.getElementById("historyBody");
+          body.innerHTML = "";
+          for (var i = 0; i < res.history.length; i++) {
+            var h = res.history[i];
+            var row = body.insertRow();
+            row.insertCell().textContent = h.attempted_at;
+            row.insertCell().textContent = h.score + " / " + h.total;
+            row.insertCell().textContent = h.percentage + "%";
+            row.insertCell().textContent = h.status;
+          }
+          show("menu");
+        });
+    }
+
+    // Module 3: Exam
+    function startExam() {
+      var box = document.getElementById("questionBox");
+      box.innerHTML = "";
+      for (var i = 0; i < QUESTIONS.length; i++) {
+        var div = document.createElement("div");
+        div.className = "q";
+
+        var p = document.createElement("p");
+        p.textContent = (i + 1) + ". " + QUESTIONS[i].q;
+        div.appendChild(p);
+
+        for (var j = 0; j < QUESTIONS[i].options.length; j++) {
+          var label = document.createElement("label");
+          var radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = "q" + i;
+          radio.value = QUESTIONS[i].options[j];
+          radio.required = true;
+          label.appendChild(radio);
+          label.appendChild(document.createTextNode(" " + QUESTIONS[i].options[j]));
+          div.appendChild(label);
+        }
+        box.appendChild(div);
+      }
+      show("exam");
+    }
+
+    // Module 4: Result (Flask checks the answers and saves the result)
+    document.getElementById("examForm").onsubmit = function (e) {
+      e.preventDefault();
+      var answers = {};
+      for (var i = 0; i < QUESTIONS.length; i++) {
+        var chosen = document.querySelector('input[name="q' + i + '"]:checked');
+        answers[i] = chosen.value;
+      }
+
+      send("/submit", { answers: answers }, function (res) {
+        document.getElementById("res_score").textContent = "Score: " + res.score + " / " + res.total;
+        document.getElementById("res_percent").textContent = "Percentage: " + res.percentage + "%";
+        document.getElementById("res_status").textContent = "Result: " + res.status;
+        show("result");
+      });
+    };
+  </script>
+
+</body>
+</html>
